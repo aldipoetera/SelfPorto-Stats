@@ -1,0 +1,6 @@
+---
+title: "Beta Distribution"
+output: html_document
+---
+
+A random variable
