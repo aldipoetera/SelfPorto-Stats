@@ -3,4 +3,56 @@ title: "Beta Distribution"
 output: html_document
 ---
 
-A random variable
+A random variable $Y$ with values in the interval $\left(0, 1\right)$ is sometimes modelled with a Beta distribution. The probability density function of a $\text{Beta}\!\left(\alpha, \beta\right)$ distributed random variable $Y$ is given by
+
+$$
+f\!\left(y\right) = \frac{1}{\text{B}\!\left(\alpha,\beta\right)} y^{\alpha - 1} (1 - y)^{\beta - 1}\text{,}
+$$
+
+where $\text{B}\!\left(\alpha, \beta\right)$ is the Beta function
+
+$$
+\text{B}\!\left(\alpha,\beta\right) = \frac{\Gamma(\alpha) \Gamma(\beta)}{\Gamma(\alpha + \beta)}\text{,}
+$$
+
+and $\Gamma(\cdot)$ denotes the Gamma function. We will show that the Beta distribution is a member of the exponential family.
+
+Let's rewrite our probability density function to look like an exponential family:
+
+$$
+\begin{align*}
+f(y) &= \frac{1}{\text{B}(\alpha,\beta)} y^{\alpha - 1} (1 - y)^{\beta - 1} \\
+&= \exp\left\{(\alpha - 1) \log y + (\beta - 1) \log (1 - y) - \text{B}(\alpha,\beta)\right\} \\
+&= \exp\left\{\underbrace{\pmatrix{\log y & \log\left(1-y\right)}}_{t^T(y)} \underbrace{\pmatrix{\alpha -1 \\ \beta - 1}}_{\theta} - \underbrace{\log\frac{\Gamma(\alpha) \Gamma(\beta)}{\Gamma(\alpha + \beta)}}_{\kappa(\theta)}\right\}
+\end{align*}
+$$
+
+obtaining
+
+$$
+\begin{align*}
+t(y) &= \pmatrix{\log y & \log\left(1-y\right)}^T\\
+h(y) &= 1\\
+\theta &= \pmatrix{\alpha-1 & \beta - 1}^T = \pmatrix{\theta_1 & \theta_2}^T\\
+\kappa(\theta) &= \log\frac{\Gamma(\alpha) \Gamma(\beta)}{\Gamma(\alpha + \beta)} = \log \frac{\Gamma(\theta_1 + 1) \Gamma(\theta_2 + 1)}{\Gamma(\theta_1 + \theta_2 + 2)}\text{.}
+\end{align*}
+$$
+
+Simplifying further $\kappa$ we get
+
+$$
+\kappa(\theta) = \log \Gamma(\theta_1 + 1) + \log \Gamma(\theta_2 + 1) - \log \Gamma(\theta_1 + \theta_2 + 2)
+$$
+
+and derivating it towards $\theta_1$ we get\
+
+$$
+\begin{align*}
+\frac{\partial\kappa(\theta)}{\partial \theta_1} &= \frac{\Gamma^\prime(\theta_1 + 1)}{\Gamma(\theta_1 + 1)} - \frac{\Gamma^\prime(\theta_1 + \theta_2 + 2)}{\Gamma(\theta_1 + \theta_2 + 2)} \\
+ &= \psi(\theta_1+1) - \psi\!\left((\theta_1+1) +(\theta_2 + 1)\right) \\
+&= \psi(\alpha) - \psi\!\left(\alpha + \beta\right)\\
+&= \mathbb{E}\!\left[\log Y\right] = \mathbb{E}\!\left[t_1(Y)\right]
+\end{align*}
+$$
+
+whereas $\psi(z)$ is the Digamma function $\Gamma^\prime(z)/\Gamma(z)$. The other variable can be verified easily.
