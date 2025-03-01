@@ -1,0 +1,119 @@
+---
+title: "Trivariate Random Normal Variables"
+output: html_document
+---
+
+Random numbers are often used to design simulation studies for evaluating the performance of statistical procedures. Generate a sample of $n=200$ trivariate normal random numbers with mean $\mu = (3.0,10.0,50.0)$ and covariance matrix
+
+$$
+\Sigma = \pmatrix{1.0&0.6&0.6\\0.6&1.0&0.6\\0.6&0.6&1.0}
+$$
+
+1.  As a ﬁrst method, use the fact that, if $X$ is a random vector of independent standard normal $N(0,1)$ variables, then
+
+    $$
+    Y= \mu + \Sigma^{1/2}X
+    $$
+
+    has the desired mean and covariance matrix. Use e.g. the Cholesky decomposition in R to compute the matrix root 1/2. By repeating the experiment $S=1000$ times, check empirically that your random numbers have the desired expected values, variances and covariances.
+
+The Cholesky decomposition decomposes the positive real symmetric matrix $\Sigma$ into $\Sigma^{1/2}(\Sigma^{1/2})^T$ where $\Sigma^{1/2}$ is a lower/upper triangular matrix. The function `chol()` in R makes them upper triangular, so transposing is in order.
+
+```{r}
+mu <- c(3.0, 10.0, 50.0)
+covar_matrix <- matrix(data = c(1.0, 0.6, 0.6, 0.6, 1.0, 0.6, 0.6, 0.6, 1),
+                       nrow = 3, ncol = 3)
+covar_matrix
+
+# Calculate Cholesky decomposition
+sqrt_covar_matrix <- chol(covar_matrix) |> t()
+sqrt_covar_matrix
+
+# Verify
+sqrt_covar_matrix %*% t(sqrt_covar_matrix)
+```
+
+Do the experiment using the `rnorm` function.
+
+```{r}
+# Generate the random vectors
+rand_vectors <- matrix(nrow = 3, ncol = 1000)
+for(i in 1:1000){
+  rand_vectors[,i] <- rnorm(n = 3, mean = 0, sd = 1)
+}
+rand_vectors[,1:5]
+
+# Create an extension of mu
+mu_matrix <- matrix(rep(x=mu,times=1000), nrow = 3, ncol = 1000)
+mu_matrix[,1:5]
+
+# Calculate Y
+Y_rand_vectors <- mu_matrix + sqrt_covar_matrix %*% rand_vectors
+Y_rand_vectors[,1:5]
+
+# Calculate mean and variances:
+print("Means:")
+apply(Y_rand_vectors, MARGIN=1, FUN = mean)
+print("Variances:")
+apply(Y_rand_vectors, MARGIN=1, FUN = sd)
+```
+
+2.  A more comfortable way is to use the function `rmvnorm` in the package `mvtnorm`. Repeat your experiment using this function.
+
+```{r}
+library("mvtnorm")
+```
+
+```{r}
+# rmvnorm
+# n = number of observations
+# mean = vector of means
+# sigma = vector of covariances
+# method = methods to be chosen (eigen, svd or chol)
+rmvnorm(n=1000, mean = mu, sigma = covar_matrix, method = "chol")
+```
+
+3.  Calculate the (conditional) variance of the conditional distribution of $\left(Y_1 \mid Y_2,Y_3\right)$.
+
+As outlined by the text, we divide our random vector $Y=(Y_1,Y_2,Y_3)^T$ into $(Y_A^T, Y_B^T)$ such that $Y_A = (Y_1)^T$ and $Y_B = (Y_2, Y_3)^T$. Our covariance matrix is now blocked into:
+
+$$
+\Sigma =
+\left(\begin{array}{c:cc}
+1.0&0.6&0.6\\ \hdashline 0.6 & 1 & 0.6\\ 0.6 & 0.6 & 1
+\end{array}\right)
+= \pmatrix{\Sigma_{AA}&\Sigma_{AB}\\\Sigma_{BA}&\Sigma_{BB}}\text{.}
+$$
+
+Thus we can calculate the mean with $\tilde{\mu} = \mu_A - \Sigma_{AB}\Sigma_{BB}^{-1}(y_B - \mu_B)$:
+
+```{r}
+install.packages("matlib")
+library(matlib)
+```
+
+```{r}
+mu_A <- c(3.0)
+sigma_AA <- matrix(data = 1, nrow = 1, ncol = 1)
+sigma_AB <- matrix(data = c(0.6, 0.6), nrow = 1, ncol = 2)
+sigma_BA <- matrix(data = c(0.6, 0.6), nrow = 2, ncol = 1)
+sigma_BB <- matrix(data = c(1, 0.6, 0.6, 1), nrow = 2, ncol = 2)
+
+coeff_ya_yb <- sigma_AB %*% (sigma_BB |> inv())
+coeff_ya_yb
+```
+
+which gets us the expression
+
+$$
+\tilde{\mu} = 3.0 - \pmatrix{0.375&0.375}\pmatrix{y_2 -10\\y_3-50}
+$$
+
+and lastly, $\widetilde{\Sigma} = \Sigma_{AA} - \Sigma_{AB}\Sigma_{BB}^{-1}\Sigma_{BA}$ is calculated as follows:
+
+```{r}
+sigma_tilde <- sigma_AA - sigma_AB %*% (inv(sigma_BB)) %*% sigma_BA
+sigma_tilde
+```
+
+thus $\widetilde{\Sigma} = 0.55$
