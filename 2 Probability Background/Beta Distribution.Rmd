@@ -48,11 +48,11 @@ and derivating it towards $\theta_1$ we get\
 
 $$
 \begin{align*}
-\frac{\partial\kappa(\theta)}{\partial \theta_1} &= \frac{\Gamma^\prime(\theta_1 + 1)}{\Gamma(\theta_1 + 1)} - \frac{\Gamma^\prime(\theta_1 + \theta_2 + 2)}{\Gamma(\theta_1 + \theta_2 + 2)} \\
+\frac{\partial\kappa(\theta)}{\partial \theta_1} &= \frac{\Gamma^\prime\!(\theta_1 + 1)}{\Gamma(\theta_1 + 1)} - \frac{\Gamma^\prime\!(\theta_1 + \theta_2 + 2)}{\Gamma(\theta_1 + \theta_2 + 2)} \\
  &= \psi(\theta_1+1) - \psi\!\left((\theta_1+1) +(\theta_2 + 1)\right) \\
 &= \psi(\alpha) - \psi\!\left(\alpha + \beta\right)\\
 &= \mathbb{E}\!\left[\log Y\right] = \mathbb{E}\!\left[t_1(Y)\right]
 \end{align*}
 $$
 
-whereas $\psi(z)$ is the Digamma function $\Gamma^\prime(z)/\Gamma(z)$. The other variable can be verified easily.
+whereas $\psi(z)$ is the Digamma function $\Gamma^\prime\!(z)/\Gamma(z)$. The other variable can be verified easily.
