@@ -1,0 +1,60 @@
+---
+title: "On A Family of Distributions"
+output: html_document
+---
+
+A family of distributions with two parameters, the distribution function
+
+$$
+F\!\left(y \mid a, b\right) = F_0\!\left(\frac{y-a}{b}\right)\! , \, a \in \mathbb{R}, \,b>0
+$$
+
+and $F_0(y)$ defined for $a = 0$, $b = 1$ is called a location scale family. In this case, $a$ is the location parameter and $b$ is the scale parameter.
+
+1.  Show that the density $f$ in the continuous case is
+
+    $$
+    f\!\left(y \mid a,b\right) = \frac{1}{b} f_0 \! \left(\frac{y-a}{b}\right)\text{.}
+    $$
+
+**Proof.** To show that this is indeed the case, remember that the density of a distribution can be determined through its cumulative function through
+
+$$
+F(y) = \mathbb{P}(Y \leq y) = \int_{-\infty}^{y} f(z) \text{d}z
+$$
+
+meaning, using the fundamental theorem of calculus, we have
+
+$$
+\begin{align*}
+f\!\left(y \mid a, b\right) &= F^\prime \!\left(y \mid a, b\right) \\
+&= \frac{1}{b}F^\prime_0 \!\left(\frac{y-a}{b}\right) \\
+&= \frac{1}{b}f_0\!\left(\frac{y-a}{b}\right)
+\end{align*}
+$$
+
+2.  The density of a generalized $t$-distributed random variable $Y \sim t_{\nu}(\mu,\sigma^2)$ with location parameter $\mu$, scale parameter $\sigma \in \mathbb{R}_{+}$ and $\nu>2$ degrees of freedom is
+
+    $$
+    f(y) = \frac{\Gamma\!\left(\frac{\nu + 1}{2}\right)}{\Gamma\!\left(\frac{\nu}{2}\right) \sqrt{\nu\pi}\sigma} 
+    \left(1 + {(y-\mu)^2 \over \nu \sigma^2}\right)^{-\frac{\nu+1}{2}}
+    $$
+
+    The moments are $\mathbb{E}(Y) = \mu$ and $\text{Var}(Y) = \frac{\nu}{\nu - 1} \sigma^2$. Show that the family of generalized $t$-distribution is an exponential family for fixed $\nu$.
+
+**Proof.** This expression will proven quite difficult to turn into vector form once it became exponential, so a change of variable is needed. Let
+
+$$
+f_1\!\left(y \mid \mu, \sigma\right) = \sigma \;f(y \sigma + \mu)
+$$
+
+thus
+
+$$
+\begin{align*}
+f_1(y) &= \frac{\Gamma\!\left(\frac{\nu + 1}{2}\right)}{\Gamma\!\left(\frac{\nu}{2}\right) \sqrt{\nu\pi}} \left(1 + {y^2 \over \nu}\right)^{-\frac{\nu +1}{2}}\end{align*}
+$$
+
+which is exactly the $t$-distribution. However, these distributions are not exponential. I have no idea what the author meant by for fixed $\nu$. Is there some value of $\nu$ that makes this exponential? I don't think so ever.
+
+Even so, the author is making us do a trick using the previous exercise. If a distribution is of some family, then its location-scale family is also of that family.
