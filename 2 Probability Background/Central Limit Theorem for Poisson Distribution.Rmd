@@ -1,0 +1,67 @@
+---
+title: "Central Limit Theorem for Poisson Distribution"
+output: html_document
+---
+
+Write a simulation program using random numbers and plots to show that the central limit theorem holds for independent Poisson distributed random variables. Evaluate, whether the speed of convergence depends on the choice of the parameter $\lambda$: $\lambda = 0.1$, $\lambda = 0.5$, $\lambda = 1.0$, $\lambda = 5$, $\lambda = 10$, $\lambda = 50$. Discuss your results.
+
+We will construct a data frame consisting of different columns on these parameters and convert them to their means, cumulatively calculated.
+
+```{r}
+num_entry = 1000
+pois_lambda <- matrix(data = rep(x = 0, times = 6*num_entry), nrow = num_entry, ncol = 6)
+mean_pois_lambda <- pois_lambda
+
+lambda_const = c(0.1, 0.5, 1.0, 5.0, 10.0, 50.0)
+lambda_char = as.character(lambda_const)
+for(i in 1:num_entry){
+  for(j in 1:6){
+    pois_lambda[i,j] <- rpois(n=1, lambda = lambda_const[j])
+    mean_pois_lambda[i,j] <- mean(pois_lambda[1:i,j])
+  }
+}
+
+mean_pois_lambda <- as.data.frame(mean_pois_lambda)
+colnames(mean_pois_lambda) <- lambda_char
+mean_pois_lambda
+
+```
+
+Next is to plot the convergence.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggforce)
+```
+
+```{r}
+mean_pois <- within(data = mean_pois_lambda, expr = {
+  n_sample <- 1:num_entry
+}) |> gather(key = "lambda",
+             value = "mean",
+             convert = TRUE,
+             c(-n_sample)) |>
+  mutate(lambda_factor = factor(lambda))
+
+glimpse(mean_pois)
+
+for_hlines <- data.frame(lambda_factor = lambda_char, mean = lambda_const)
+
+ggplot(data = mean_pois, aes(x = n_sample)) +
+  geom_line(aes(y = mean, color = lambda_factor)) +
+  facet_grid(rows = vars(lambda_factor), scales = 'free_y') +
+  geom_hline(aes(color = lambda_factor, yintercept = mean),
+             for_hlines, linetype = 2, alpha = 0.8) +
+  theme_bw()
+
+ggplot(data = mean_pois, aes(x = n_sample)) +
+  geom_line(aes(y = mean - lambda, color = lambda_factor), 
+            alpha = 0.7, linewidth = 0.8) +
+  facet_zoom(xlim = c(750, 1000),
+             ylim = c(-0.5, 0.5)) +
+  theme_bw()
+```
+
+As we can see, higher values of $\lambda$ lead to slower convergence. This is because higher moments of Poisson distribution depends on the variable on a proportional level, and our $K_{Z_n}(t)$ will need a bigger $n$ to diminish those terms in its Taylor series representation. That's why the convergence will be relatively slower.
