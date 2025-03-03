@@ -75,7 +75,7 @@ ggplot(data = mean_pois, aes(x = n_sample)) +
                 color = lambda_factor), 
             alpha = 0.7, linewidth = 0.8) +
   facet_zoom(xlim = c(750, 1000),
-             ylim = c(0, 0.5)) +
+             ylim = c(0, 0.1)) +
   theme_bw()
 ```
 
