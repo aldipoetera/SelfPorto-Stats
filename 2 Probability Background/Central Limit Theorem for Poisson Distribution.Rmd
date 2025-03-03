@@ -57,11 +57,24 @@ ggplot(data = mean_pois, aes(x = n_sample)) +
   theme_bw()
 
 ggplot(data = mean_pois, aes(x = n_sample)) +
-  geom_line(aes(y = mean - lambda, color = lambda_factor), 
+  geom_line(aes(y = (mean - lambda) |> abs(), 
+                color = lambda_factor), 
             alpha = 0.7, linewidth = 0.8) +
   facet_zoom(xlim = c(750, 1000),
-             ylim = c(-0.5, 0.5)) +
+             ylim = c(0, 0.5)) +
   theme_bw()
 ```
 
 As we can see, higher values of $\lambda$ lead to slower convergence. This is because higher moments of Poisson distribution depends on the variable on a proportional level, and our $K_{Z_n}(t)$ will need a bigger $n$ to diminish those terms in its Taylor series representation. That's why the convergence will be relatively slower.
+
+However, with respect to its relative scale (), things might be different:
+
+```{r}
+ggplot(data = mean_pois, aes(x = n_sample)) +
+  geom_line(aes(y = (mean - lambda)/lambda |> abs(), 
+                color = lambda_factor), 
+            alpha = 0.7, linewidth = 0.8) +
+  facet_zoom(xlim = c(750, 1000),
+             ylim = c(0, 0.5)) +
+  theme_bw()
+```
