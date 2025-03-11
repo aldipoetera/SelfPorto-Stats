@@ -104,7 +104,7 @@ a &> 0
 $$
 
 ```{r}
-n = 1000
+n = 100
 
 mse_max <- function(a, b, n){
   pi_0 <- (2*a*(a+b) - n)/(2*(a+b)^2 - 2*n)
@@ -136,7 +136,7 @@ print(c(a_grid[which_min[1]], b_grid[which_min[2]]))
 mse_max(a_grid[which_min[1]], b_grid[which_min[2]], n) |> sqrt()
 ```
 
-The next checks whether our estimation is accurate. It seems that the minimax parameter is quite consistent, but is still close towards our target parameter.
+The next checks whether our estimation is accurate. It seems that the minimax parameter is quite consistent, but is still close towards our target parameter. After all, it tries to minimize the estimation's maximum risk, not finding the exact estimation that minimizes risk.
 
 ```{r}
 estimator <- function(y,a,b,n){
@@ -149,7 +149,7 @@ cum_mean_est <- 0
 lol <- 0
 for(i in 1:10000){
   y = rbinom(1, 1000, 0.7)
-  mean_est <- estimator(y, 31.62278, 11.57973, 1000)
+  mean_est <- estimator(y, 10, 3.6618, 1000)
   real_est <- y/1000
   cum_mean_est <- (cum_mean_est*(i-1)+mean_est)/i
   lol <- (lol*(i-1)+real_est)/i
@@ -157,4 +157,29 @@ for(i in 1:10000){
 
 cum_mean_est
 lol
+```
+
+The following code demonstrates that. For each probability in `probs`, we have our estimation's difference towards the real parameter, where `diff` is our estimator and `diff` is the sample mean estimator.
+
+```{r}
+
+probs <- seq(from = 0, to = 1, by = 0.05)
+diff <- probs - probs
+diff_real <- probs - probs
+for(param_pi in seq(from = 0, to = 1, by = 0.05)){
+  cum_mean_est <- 0
+  lol <- 0
+  for(i in 1:1000){
+    y = rbinom(1, 100, param_pi)
+    mean_est <- estimator(y, 10, 3.661831, 100)
+    real_est <- y/100
+    cum_mean_est <- (cum_mean_est*(i-1)+mean_est)/i
+    lol <- (lol*(i-1)+real_est)/i
+  }
+  diff[param_pi*(1/0.05)+1] <- cum_mean_est - param_pi
+  diff_real[param_pi*(1/0.05)+1] <- lol - param_pi
+}
+
+data.frame(probs = probs, diff = diff, diff_real = diff_real)
+sqrt(mean(diff^2))
 ```
