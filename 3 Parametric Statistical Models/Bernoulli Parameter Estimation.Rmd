@@ -113,6 +113,10 @@ mse_max <- function(a, b, n){
           NA)
 }
 
+pi_mse <- function(a, b, n){
+  (2*a*(a+b) - n)/(2*(a+b)^2 - 2*n)
+}
+
 a_grid <- seq(from = 0, to = sqrt(n), length.out = 2000)
 b_grid <- seq(from = 0, to = sqrt(n), length.out = 2000)
 
@@ -134,6 +138,7 @@ which_min = which(mse_max_a_b == min(mse_max_a_b, na.rm = TRUE), arr.ind = TRUE)
 which_mse_min = mse_max_a_b[which_min[1], which_min[2]]
 print(c(a_grid[which_min[1]], b_grid[which_min[2]]))
 mse_max(a_grid[which_min[1]], b_grid[which_min[2]], n) |> sqrt()
+pi_mse(a_grid[which_min[1]], b_grid[which_min[2]], n)
 ```
 
 The next checks whether our estimation is accurate. It seems that the minimax parameter is quite consistent, but is still close towards our target parameter. After all, it tries to minimize the estimation's maximum risk, not finding the exact estimation that minimizes risk.
@@ -148,8 +153,8 @@ y = rbinom(1, 10, 0.7)
 cum_mean_est <- 0
 lol <- 0
 for(i in 1:10000){
-  y = rbinom(1, 1000, 0.7)
-  mean_est <- estimator(y, 10, 3.6618, 1000)
+  y = rbinom(1, 1000, 0.9996747)
+  mean_est <- estimator(y, 10, 3.6618,  1000)
   real_est <- y/1000
   cum_mean_est <- (cum_mean_est*(i-1)+mean_est)/i
   lol <- (lol*(i-1)+real_est)/i
@@ -169,9 +174,9 @@ diff_real <- probs - probs
 for(param_pi in seq(from = 0, to = 1, by = 0.05)){
   cum_mean_est <- 0
   lol <- 0
-  for(i in 1:1000){
+  for(i in 1:100){
     y = rbinom(1, 100, param_pi)
-    mean_est <- estimator(y, 10, 3.661831, 100)
+    mean_est <- estimator(y, 10, 3.661831,   100)
     real_est <- y/100
     cum_mean_est <- (cum_mean_est*(i-1)+mean_est)/i
     lol <- (lol*(i-1)+real_est)/i
@@ -181,5 +186,5 @@ for(param_pi in seq(from = 0, to = 1, by = 0.05)){
 }
 
 data.frame(probs = probs, diff = diff, diff_real = diff_real)
-sqrt(mean(diff^2))
+diff^2 |> mean() |> sqrt()
 ```
