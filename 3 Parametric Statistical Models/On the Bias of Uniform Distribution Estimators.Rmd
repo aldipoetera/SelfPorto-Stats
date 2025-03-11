@@ -1,0 +1,96 @@
+---
+title: "On the Bias of Uniform Distribution Estimators"
+output: html_document
+---
+
+We consider a sample $Y_1,\ldots,Y_n$ from a uniform distribution on the interval $\left[0, \theta\right]$ with the density function $f(y;\theta) = 1/\theta$ for $y\in\left[0,\theta\right]$, otherwise $f(y;\theta) = 0$. We estimate $\theta$ with the maximum value in the sample, i.e. $\hat \theta = Y_{(n)}$.
+
+1.  Illustrate why $\hat \theta$ is a biased estimate.
+
+We will illustrate it in the most simple way using basic probability. The $n$-th order statistics has a cumulative probability such as follows: in order for the $n$-th order statistics to have value $\leq x$, the number of samples that are over $x$ are 0, while the lesser ones are $n$; such combinations are $\pmatrix{0\\0}$ .
+
+Its function is described as follows:
+
+$$
+F_{n}(x) = \pmatrix{n \\n} F(x)^n (1-F(x))^{0}= \left(\frac{x}{\theta}\right)^n
+$$
+
+When, differentiated, we have
+
+$$
+f_n(x) =\frac{n}{\theta} \left(\frac{x}{\theta}\right)^{n-1}
+$$
+
+Taking it expected values we come at a value of:
+
+$$
+\begin{align*}
+\mathbb{E}[Y_n] &= \int_{0}^{\theta} x\cdot \frac{n}{\theta}\left(\frac{x}{\theta}\right)^{n-1} \text{d}x \\
+&= \frac{n}{\theta^n}\int_{0}^{\theta} x^n \text{d}x \\
+&= \frac{n}{\theta^n} \cdot\frac{\theta^{n+1}}{n+1} = \frac{n}{n+1} \theta
+\end{align*}
+$$
+
+hence our bias would be $-\frac{\theta}{n+1}$ for all $\theta$ and $n$. It is completely biased because it is not completely zero, but the bias can be totally reduced when $n \to \infty$.
+
+2.  Show that $\hat \theta$ is the Maximum Likelihood estimate.
+
+Our likelihood, $\prod f(y_i ;\theta)$, which would be $\theta^{-n}$, differentiating towards the log-likelihood it gets us $\frac{-n}{\theta}$, which is maximum when $\theta$ is high. Using $y$ as our data, the only function that estimates the highest $\theta$ in the parameter space given data $y$ is the maximum of the samples.
+
+3.  Show that $\theta^\ast = 2\bar Y$ is an unbiased estimate for $\theta$.
+
+If we properly calculate the mean of this estimate,
+
+$$
+\mathbb{E}[2\bar Y] =\frac{2}{n}(n\theta/2)=\theta
+$$
+
+which gets us $\text{Bias}(\theta^\ast, \theta) = 0$ for all $\theta$.
+
+4.  Check your results empirically by generating uniform random numbers in the interval $\left[0, 5\right]$. Try different sample sizes: $n=5$, $n=10$, $n=50$, $n=100$, $n=500$ and discuss your findings.
+
+```{r}
+library(stats)
+```
+
+```{r}
+theta_hat_estimate <- function(sample_size, theta){
+  runif(n=sample_size, min=0, max=theta) |>
+    max()
+}
+
+theta_ast_estimate <- function(sample_size, theta){
+  y_bar <- runif(n=sample_size, min=0, max=theta) |>
+    mean()
+  y_bar*2
+}
+
+theta_hats <- c()
+theta_asts <- c()
+sample_sizes <- c(5, 10, 50, 100, 500, 1000, 5000)
+for(samples in sample_sizes){
+  theta_hat_temp <- 0
+  theta_ast_temp <- 0
+  for(iter in 1:100){
+    hat_temp <- theta_hat_estimate(samples, 5)
+    ast_temp <- theta_ast_estimate(samples, 5)
+    theta_hat_temp <- (theta_hat_temp*(iter - 1) + hat_temp)/iter
+    theta_ast_temp <- (theta_ast_temp*(iter - 1) + ast_temp)/iter
+  }
+  
+  theta_hats <- append(theta_hats, theta_hat_temp)
+  theta_asts <- append(theta_asts, theta_ast_temp)
+}
+
+data.frame(n = sample_sizes, 
+           theta_hat = theta_hats, 
+           diff_hat = theta_hats - 5,
+           theta_ast = theta_asts,
+           diff_ast = theta_asts - 5)
+```
+
+-   These are **the averaged estimate** over iterating the process a lot of times (100 times), respectively for `theta_hat` and `theta_ast`.
+
+-   The differences towards $\theta = 5$ shows that $\theta^\ast$ is way better at estimating.
+
+-   $\hat\theta$ shows significant bias at lower values (remember this process repeated 100 times for each sample size and averaged) and gets better when $n$ becames larger, as shown in previous exercise.
