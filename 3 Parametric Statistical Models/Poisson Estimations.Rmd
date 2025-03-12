@@ -1,0 +1,87 @@
+---
+title: "Poisson Estimations"
+output: html_document
+---
+
+In the data `injured.csv`, the weekly numbers of pedestrians severely injured in traffic in a city are recorded for 10 years (n = 520). We assume that the numbers are independent realizations of a Poisson distributed random variable $Y$ with constant intensity parameter $\lambda$.
+
+1.  Derive and calculate the Maximum Likelihood estimate $\hat \lambda_{\text{ML}}$ of $\lambda$ given the available data.
+
+Suppose we have samples $Y_1, \ldots, Y_n$ where $Y_i \sim \text{Pois}(\lambda)$ for all $i$. Given the data $y$, our Maximum Likelihood function would be
+
+$$
+L(y_1,\ldots,y_n ; \lambda) = \prod_{i=1}^{n} f(y_i;\lambda) = \prod_{i=1}^{n} \frac{e^{-\lambda}\lambda^{y_i}}{y_i!} = \frac{e^{-n\lambda}\lambda^{\sum y_i}}{\prod y_i!}
+$$
+
+Towards its log-likelihood, we have
+
+$$
+l(y_1,\ldots,y_n ; \lambda) =-n\lambda+(\Sigma_i y_i) \log \lambda - \log {\Pi_i \,y_i!}
+$$
+
+Differentiating and setting it to zero we have
+
+$$
+\begin{align*}
+0 &= -n + {\Sigma_i y_i \over \hat \lambda_{\text{ML}}} \\
+\hat \lambda_{\text{ML}} &= \frac{\Sigma_i y_i}{n}
+\end{align*}
+$$
+
+which is supposedly the average of the data. By the following code, we have $\hat \lambda_{\text{ML}} = 4.996154$.
+
+```{r}
+mean(injured[["y"]], na.rm = TRUE)
+```
+
+2.  Calculate the method of moments estimate for $\lambda$
+
+This one is quite easy to see because $\mathbb{E}[Y] = \lambda$, creating the equation $\hat \lambda_{\text{MM}} = m_1 = \Sigma_i y_i /n = 4.996154$.
+
+3.  Calculate a $95\%$ confidence interval, assuming asymptotic normality of the ML estimate.
+
+Asymptotic normality makes us deduce that
+
+$$
+{\hat \lambda_{\text{ML}} - \lambda \over \sqrt {\text{Var}(\hat\lambda_{\text{ML}})}} \overset a \sim N(0,1)
+$$
+
+when our number of samples goes high, which in turn pivots our calculation of the confidence interval on a normal distribution:
+
+$$
+\begin{align*}
+1 - \alpha \approx \mathbb{P}(\hat\lambda_{\text{ML}} - z_{1-\alpha/2} \sqrt {\text{Var}(\hat\lambda_{\text{ML}})} \leq \lambda \leq \hat\lambda_{\text{ML}} + z_{1-\alpha/2} \sqrt {\text{Var}(\hat\lambda_{\text{ML}})})
+\end{align*}
+$$
+
+where $z_{1 - \alpha/2}$ is the $1-\alpha/2$-th quantile of $N(0,1)$. But first we have to calculate the variance of $\hat\lambda_{\text{ML}}$ as what follows:
+
+$$
+\begin{align*}
+\text{Var}(\hat\lambda_{\text{ML}}) &= \frac{1}{n^2}\Sigma_i \text{Var}(Y_i) = \frac{1}{n^2}(n\lambda) = \frac{\lambda}{n}\\
+\implies\text{Var}(\hat\lambda_{\text{ML}}) &= \frac{\hat\lambda_{\text{ML}}}{n}
+\end{align*}
+$$
+
+Since it only depends on $\lambda$, we can just replace it with $\hat \lambda_{\text{ML}}$. What we have to do now is calculate through R:
+
+```{r}
+alpha = 0.05
+n = injured[["y"]] |> length()
+z_quant <- qnorm(1 - alpha/2, mean = 0, sd = 1)
+lambda_ml <- mean(injured[["y"]], na.rm = TRUE)
+var_ml <- lambda_ml/n
+lower_bound <- lambda_ml - z_quant*sqrt(var_ml)
+upper_bound <- lambda_ml + z_quant*sqrt(var_ml)
+
+print(paste0("[",lower_bound,", ",upper_bound,"]"))
+```
+
+Therefore, our confidence interval is
+
+$$
+\begin{align*}
+\text{CI}_{95\%} &= \left[\hat\lambda_{\text{ML}} - z_{1-\alpha/2} \sqrt {\text{Var}(\hat\lambda_{\text{ML}})}, \hat\lambda_{\text{ML}} + z_{1-\alpha/2} \sqrt {\text{Var}(\hat\lambda_{\text{ML}})}\right] \\
+&= \left[4.80403749888434, 5.18827019342335\right]
+\end{align*}
+$$
