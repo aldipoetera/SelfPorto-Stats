@@ -1,0 +1,61 @@
+---
+title: "Asymptotic Distribution of Relative Risks"
+output: html_document
+---
+
+In a clinical study for a certain disease, $n$ patients are treated with a new drug while another $n$ patients are treated with placebo. Let $Y_1 \sim \text{Bin}(n,p_1)$ the number of diseased patients in the drug group and $Y_0 \sim \text{Bin}(n,p_0)$ the number of diseased patients in the placebo group. We assume that the groups are independent. An interesting measure is the *relative risk*
+
+$$
+RR = {p_1 \over p_0} \in \mathbb{R}_{+}\text{.}
+$$
+
+Consider a family of estimates
+
+$$
+\widehat{RR}_\theta = \frac{\hat p_1 + \theta}{\hat p_0 + \theta}, \theta \geq 0 \text{ and } \hat p_1 = Y_1/n, \; p_0 = Y_0/n
+$$
+
+1.  Derive the asymptotic distribution of $\log \widehat{RR}_\theta$. (Note: assume that $\hat p_0$ and $\hat p_1$ are independent and asymptotically normally distributed and apply the delta rule.)
+
+First, we see that $\log \widehat{RR}_\theta = \log(\hat p_1 + \theta) - \log (\hat p_0 + \theta)$, and that $\hat{p}_1 - p_1 = (\hat{p}_1 + \theta) - (p_1 + \theta) \sim N\!\left(0, I^{-1}(p_1)\right)$ and a similar expression for $\hat{p}_0$. Our score function is
+
+$$
+\begin{align}
+s(p_1;Y_1) &= \frac{\partial \log f(Y_1;p_1)}{\partial p_1} \\
+&= \frac{\partial \left(Y_1\log p_1 + (n-Y_1) \log (1-p_1) + \log\binom{n}{Y_1}\right)}{\partial p_1} \\
+&= \frac{Y_1}{p_1} - \frac{n - Y_1}{1-p_1}
+\end{align}
+$$
+
+thus $I(p_1) = -\mathbb{E}\!\left[-\frac{Y_1}{p_1^2} - \frac{n - Y_1}{(1 - p_1)^2}\right] = \frac{n}{p_1} + \frac{n}{1-p_1} = \frac{n}{p_1(1 - p_1)}$ . Since $\gamma_1 = g(p_1)$ with $g(x) = \log (x + \theta)$, using the delta rule, we have
+
+$$
+\begin{align}
+\hat{\gamma}_1 - \gamma_1 &\overset{a}{\sim} N\!\left(0, \left(\frac{d\gamma_1}{dp_1}\right)^2\frac{p_1(1-p_1)}{n}\right) \\
+&=N \!\left(0, \frac{p_1(1-p_1)}{n(p_1+\theta)^2}\right)
+\end{align}
+$$
+
+and similarly, $\hat{\gamma}_0 - \gamma_0 \overset{a}{\sim} N\!\left(0, \frac{p_1(1 - p_1)}{n(p_1 + \theta)^2}\right)$.. Finally, we calculate the mean and the variance of $\hat{\gamma}_1 - \hat\gamma_0$, which we have
+
+$$
+\begin{align}
+\mathbb{E}[\hat\gamma_1-\hat\gamma_0] &= \gamma_1 - \gamma_0 = \log(p_1 +\theta) - \log(p_0 +\theta)\\
+\text{Var}[\hat\gamma_1-\hat\gamma_0] &= \text{Var}[\hat\gamma_1] + \text{Var}[\hat\gamma_0] \\
+&= \frac{p_1(1-p_1)}{n(p_1+\theta)^2} + \frac{p_0(1-p_0)}{n(p_0+\theta)^2}
+\end{align}
+$$
+
+hence
+
+$$
+\log \widehat{RR}_\theta = \log(\hat p_1 + \theta) - \log(\hat p_0 +\theta) = \hat \gamma_1 - \hat \gamma_0 \overset{a}{\sim} N\left(\log(p_1 +\theta) - \log(p_0 +\theta), \frac{p_1(1-p_1)}{n(p_1+\theta)^2} + \frac{p_0(1-p_0)}{n(p_0+\theta)^2}\right)
+$$
+
+2.  Calculate the asymptotic mean value and the variance of the estimate $\log \widehat{RR}_\theta$.
+
+According to previous exercise, the mean will stay at $\log(p_1 + \theta) - \log(p_0 + \theta)$ and the variance will converge $0$ when $n \to \infty$.
+
+3.  Derive an asymptotic 95% confidence interval for $RR$.
+
+Our confidence interval is determined by $\mathbb{P}_{p_1/p_0}[t_l(Y_0,Y_1) \leq p_1/p_0 \leq t_r(Y_0, Y_1)] \geq 0.05$. Since our logarithm of relative risk is a normal distribution, if we exponentiate it we will get a log-normal distribution. (It's a complicated one.)
