@@ -3,3 +3,136 @@ title: "ML Modelling"
 output: html_document
 ---
 
+```{r}
+library(purrr)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+```
+
+The toxicity of a chemical substance is tested by exposing it to beetles in different concentrations. The data are given in the ﬁle `ch4exerc2.csv`. The following table shows the results:
+
+```{r}
+ch4exerc2
+```
+
+`numberExposed` is the number of beetles exposed to the corresponding concentration, `numberDied` is the number of beetles that died at that concentration.
+
+1.  Three different models are used to estimate the inﬂuence of toxicity on the probability that a beetle dies given a certain concentration $x$. Let $Y$ be the binary response with $Y=1$ if a beetle dies at concentration $x$ with $\pi(x) = P(Y = 1 \mid x)$ and $Y = 0$ otherwise.
+
+    (a) The probability is linked to the concentration $x$ through the logistic function
+
+        $$
+        \pi(x) = \frac{\exp(\alpha_1 + \beta_1x)}{1 + \exp(\alpha_1 + \beta_1x)}
+        $$
+
+    (b) The probability is linked through the probit function
+
+        $$
+        \pi(x) = \Phi(\alpha_2 + \beta_2x)
+        $$
+
+        where $\Phi(\cdot)$ is the distribution function of the normal distribution.
+
+    (c) The probability is linked through the complementary log-log function
+
+        $$
+        \pi(x) = 1- \exp[-\exp(\alpha_3 + \beta_3x)]
+        $$
+
+    For all three models, determine the likelihood and log-likelihood given the above data. Find the ML estimates of the parameters $(\alpha_j, \beta_j), j=1,2,3$ using a generic optimisation function in $R$, e.g. the function `optim`.
+
+    We can model this with binomial variable. Given $Y$ and $X$ the number of beetles died and the concentration respectively, we can model $P(X,Y)$ as $\binom{Y_{\mathtt{Exposed}}}{Y_{\mathtt{Died}}} \pi(x)^{Y_{Died}} (1 - \pi(x))^{Y_{\mathtt{Exposed}} - Y_{Died}}$.
+
+    ```{r}
+    pi_1 <- function(alpha, beta, x){
+      exp(alpha + beta*x)/(1 + exp(alpha + beta*x))
+    }
+
+    pi_2 <- function(alpha, beta, x){
+      dnorm(x = alpha + beta*x)
+    }
+
+    pi_3 <- function(alpha, beta, x){
+      1 - exp(-exp(alpha + beta*x))
+    }
+    ```
+
+    ```{r}
+    binom_prob <- function(x, y_died, y_exp, prob_func, alpha, beta){
+      dbinom(y_died, size = y_exp, prob = prob_func(alpha, beta, x))
+    }
+
+    likelihood <- function(alphabeta, dataset, prob_func){
+      binom_before <- function(X, YD, YE) binom_prob(X, YD, YE, prob_func, alphabeta[1], alphabeta[2])
+      binom_parallel <- pmap(list(X=dataset$concentration, 
+                                  YD=dataset$numberDied, 
+                                  YE=dataset$numberExposed), 
+                                  binom_before) |> unlist(use.names = FALSE)
+      prod(binom_parallel)
+    }
+
+    likelihood(c(0.5,0.01), ch4exerc2, pi_3)
+    ```
+
+    ```{r}
+    likelihood_pi_1 <- function(alphabeta) (-1)*likelihood(alphabeta, ch4exerc2, pi_1) |> log()
+    likelihood_pi_2 <- function(alphabeta) (-1)*likelihood(alphabeta, ch4exerc2, pi_2) |> log()
+    likelihood_pi_3 <- function(alphabeta) (-1)*likelihood(alphabeta, ch4exerc2, pi_3) |> log()
+
+    optim(par = c(0,0), fn = likelihood_pi_1)$par
+    optim(par = c(0,0), fn = likelihood_pi_2)$par
+    optim(par = c(0,0), fn = likelihood_pi_3)$par
+    ```
+
+3.  Using the Maximum Likelihood estimates $(\hat{\alpha}_j, \hat{\beta}_j),j=1,2,3$ calculate the expected proportion of dead beetles for each concentration. Compare the results with the raw proportions (`numberDied`/`numberExposed`) of the data and visualise the results in an appropriate plot.
+
+    ```{r}
+    x_pi <- seq(from = 1.5, to = 2.1, by = 0.01)
+    y_pi1 <- pi_1(-59.83858, 33.77936, x_pi)
+    y_pi2 <- pi_2(13.488121,-7.264653, x_pi)
+    y_pi3 <- pi_3(-36.95845, 20.57205, x_pi)
+    pi1_graph <- data.frame(x_pi, y_pi1, y_pi2, y_pi3)
+    pi1_graph <- pi1_graph |>
+      pivot_longer(cols = 2:4,
+                   names_to = 'y_pi_j',
+                   values_to = 'value')
+
+    concent_sample <- ch4exerc2 |>
+      mutate(pi_x_sample = numberDied/numberExposed)
+
+    concent_estimate <- data.frame(concentration = ch4exerc2$concentration) |>
+      mutate(y_pi1 = pi_1(-59.83858, 33.77936, concentration),
+             y_pi2 = pi_2(13.488121,-7.264653, concentration),
+             y_pi3 = pi_3(-36.95845, 20.57205, concentration)) |>
+      pivot_longer(cols = c('y_pi1', 'y_pi2', 'y_pi3'),
+                   names_to = 'y_pi_j',
+                   values_to = 'value')
+    ```
+
+    ```{r}
+    ggplot(pi1_graph, aes(x = x_pi, y = value)) +
+      geom_line(aes(color = y_pi_j)) +
+      geom_point(data = concent_sample, 
+                 aes(x = concentration, y = pi_x_sample), 
+                 size = 3, shape = 21) +
+      geom_point(data = concent_estimate, 
+                 aes(x = concentration, y = value, color = y_pi_j),
+                 alpha = 0.5, size = 2) +
+      theme_minimal()
+    ```
+
+    ```{r}
+    ggplot(concent_estimate, aes(x = concentration, y = value)) +
+      geom_vline(xintercept = concent_estimate$concentration,
+                 alpha = 0.2) +
+      geom_point(aes(color = y_pi_j, shape = y_pi_j),
+                 size = 3) + 
+      geom_point(data = concent_sample, aes(x = concentration, y = pi_x_sample),
+                 size = 3, shape = 3) +
+      theme_minimal()
+    ```
+
+4.  Think about how to determine which of the three models has the best ﬁt to the observed proportions.
+
+    In terms of the model, logistic models is the most suitable model conceptually, especially model 1 and 3. In some way, a chemical substance will be lethal after a certain concentration. Plus, these models fit the sample data way quite so.
