@@ -85,7 +85,7 @@ ch4exerc2
     optim(par = c(0,0), fn = likelihood_pi_3)$par
     ```
 
-3.  Using the Maximum Likelihood estimates $(\hat{\alpha}_j, \hat{\beta}_j),j=1,2,3$ calculate the expected proportion of dead beetles for each concentration. Compare the results with the raw proportions (`numberDied`/`numberExposed`) of the data and visualise the results in an appropriate plot.
+2.  Using the Maximum Likelihood estimates $(\hat{\alpha}_j, \hat{\beta}_j),j=1,2,3$ calculate the expected proportion of dead beetles for each concentration. Compare the results with the raw proportions (`numberDied`/`numberExposed`) of the data and visualise the results in an appropriate plot.
 
     ```{r}
     x_pi <- seq(from = 1.5, to = 2.1, by = 0.01)
@@ -133,6 +133,6 @@ ch4exerc2
       theme_minimal()
     ```
 
-4.  Think about how to determine which of the three models has the best ﬁt to the observed proportions.
+3.  Think about how to determine which of the three models has the best ﬁt to the observed proportions.
 
     In terms of the model, logistic models is the most suitable model conceptually, especially model 1 and 3. In some way, a chemical substance will be lethal after a certain concentration. Plus, these models fit the sample data way quite so.
