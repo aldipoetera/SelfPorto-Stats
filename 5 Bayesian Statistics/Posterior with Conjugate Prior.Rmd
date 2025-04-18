@@ -1,0 +1,49 @@
+---
+title: "Posterior with Conjugate Prior"
+output: html_document
+---
+
+Let $Y_1, Y_2, \ldots,Y_n$ be an i.i.d. sample from an exponential distribution $\text{Exp}(\lambda)$. As prior distribution for $\lambda$, we assume a Gamma distribution, $\text{Ga}(\alpha,\beta)$.
+
+1.  Derive the posterior distribution for $\lambda$ and its mean and variance.
+
+We have that
+
+$$
+f_y(y\mid\lambda) \propto \lambda^ne^{-\lambda\sum y_i}
+$$
+
+thus
+
+$$
+\begin{align}
+f_{\lambda}(\lambda\mid y) &\propto f_y(y\mid\lambda) f_\lambda(\lambda\mid\alpha,\beta) \\
+&\propto \lambda^n e^{-\lambda \sum y_i} \cdot\lambda^{\alpha-1} e^{-\beta \lambda} \\
+&\propto \lambda^{(n+\alpha)-1} e^{-\lambda(\beta + \sum y_i)}
+\end{align}
+$$
+
+getting us a distribution that is similar to $\text{Ga}(n+\alpha, \beta + \sum y_i)$. Its mean and variance is
+
+$$
+\mathbb{E}_\lambda[\lambda\mid y] = \frac{n+\alpha}{\sum y_i + \beta}\\
+\text{Var}_\lambda[\lambda\mid y] = \frac{n+\alpha}{(\sum y_i + \beta)^2}
+$$
+
+We can see that $\lim_{n \to \infty} \mathbb{E}_\lambda [\lambda \mid y] = 1/\bar{y}$ and the variance goes to zero when $n$ is large enough.
+
+2.  Calculate the posterior mode. For what choice of $\alpha$ and $\beta$ are the posterior mode estimate and Maximum Likelihood estimate of $\lambda$ numerically identical?
+
+Our posterior mode is $\frac{n+\alpha-1}{\beta + \sum y_i}$ if $n>1$. When we look at the actual MP estimate,
+
+$$
+\begin{align}
+\log f_y &= (n + \alpha - 1) \log \lambda - \lambda (\beta + \Sigma y_i) \\
+\frac{\text{d}}{\text{d}x} \log f_y &= \frac{n + \alpha - 1}{\lambda} - (\beta +\Sigma y_i) = 0 \\
+\lambda_{MP} &= \frac{n + \alpha - 1}{\beta + \Sigma y_i}
+\end{align}
+$$
+
+it's pretty much the same numerically. However, when $n = 1$, things depend on $\alpha$ a little bit. If $\alpha \geq 1$, then our MP estimate and posterior mode is numerically the same. However, when $\alpha < 1$, our posterior mode is 0. There's no value of $\beta$ that could equalize both estimators; the only way for this to be equal is to make $n$ go to infinity.
+
+...well, if we talk about ML estimate, its value is $n/\Sigma y_i$. We can only achieve this when $\alpha=1, \beta = 0$, which is the flat prior.
