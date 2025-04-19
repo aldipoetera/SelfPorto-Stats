@@ -1,0 +1,172 @@
+---
+title: "Change Point Model with Gibbs Sampling"
+output: html_document
+---
+
+The ﬁle `ch6exerc3.csv` contains annual numbers $X_i, i = 1,\ldots, 112$ of accidents due to disasters in British coal mines from 1850 to 1962 (the data are contained in the R package `GeDS`).
+
+A change point model is applied to the data, which means that the parameters of the model change at a given point in time. To be speciﬁc, the model takes the following form:
+
+$$
+X_i = 
+\begin{cases}
+\text{Pois}(\lambda_1) & \text{if }i=1,\ldots,\theta, \\
+\text{Pois}(\lambda_2) & \text{if }i=\theta+1,\ldots,112,
+\end{cases}
+$$
+
+where we assume as priors: $\lambda_i\mid \alpha \sim \Gamma(3,\alpha)$ *i.i.d.*, $i=1,2$ and $\alpha \sim \Gamma(10, 10)$. We assume that $\theta$ is known.
+
+1.  Derive the univariate full conditionals and describe a Gibbs sampler to get draws from the posterior distribution $p(\lambda_1, \lambda_2, \alpha\mid x,\theta)$. Hint: all three full conditionals are Gamma distributions.
+
+Let's first derive for $\lambda_1$ and $\lambda_2$, which are $p(\lambda_i\mid \lambda_j, x,\theta, \alpha)$ for $i,j=1,2,i\neq j$. Note that
+
+$$
+\begin{align}
+p(\lambda_1\mid \lambda_2, x,\theta, \alpha) &\propto p(x \mid \lambda_1, \lambda_2, \theta, \alpha) p(\lambda_1, \alpha)\\
+&\propto p(x \mid \lambda_1, \lambda_2, \theta, \alpha) p(\lambda_1 \mid \alpha) p(\alpha) \\
+&\propto \left[\prod_{i=1}^{\theta} \lambda_1^x e^{-\lambda_1} \right] \left[\lambda_1^{3-1}e^{-\alpha\lambda_1}\right]\\
+&\propto \lambda_1^{\theta x+3 -1} e^{-(\alpha + \theta)\lambda_1}
+\end{align}
+$$
+
+thus $\lambda_1 \mid \lambda_2, \alpha, x ,\theta  \sim \Gamma(\Sigma _{i\in[1,\theta]}\,x_i+3, \alpha+\theta)$ is our result. Things like $p(\alpha)$ and the other components $X_i$ for $i=\theta+1,\ldots,112$ are dropped since none of them are proportional to $\lambda_1$.
+
+Likewise, for $\lambda_2$, we have $\lambda_2 \mid \lambda_1,x, \theta,\alpha \sim \Gamma(\Sigma_{i\in [\theta+1,112]}\,x_i+3,\alpha+(112-\theta))$. Lastly, we derive the univariate conditional for $\alpha \mid \lambda_1 , \lambda_2$. It is easy to see that
+
+$$
+\begin{align}
+p(\alpha \mid \lambda_1, \lambda_2) &\propto  p(\lambda_1, \lambda_2\mid\alpha) p(\alpha) \\
+&\propto p(\lambda_1\mid\alpha)p(\lambda_2 \mid \alpha)p(\alpha) \\
+&\propto \alpha^3 e^{-\alpha\lambda_1} \alpha^3 e^{-\alpha\lambda_2} \alpha^{10-1} e^{-10\alpha} \\
+&\propto \alpha^{16-1} e^{-(\lambda_1+\lambda_2+10)\alpha}
+\end{align}
+$$
+
+therefore $\alpha \mid \lambda_1,\lambda_2 \sim \Gamma(16,\lambda_1+\lambda_2+10)$ is our result. It would seem wise to draw from $\lambda_1$ and then $\lambda_2$ first as we can set $\theta^\star_{(t)} = (0,0,\alpha_0)$ for $t=0$, making our starting univariate conditional $\Gamma(16,10)$ for some $\alpha_0$. As we draw $\alpha$ from $\alpha \mid {\lambda_1^*}_{(t)},{\lambda_2^*}_{(t)}$, we then go back and set $t:=t+1$ iterate the draws until the entire draws sufficiently convergent to a stationary distribution.
+
+2.  Implement the Gibbs sampler in R and let it run for different values of $\theta$. Use a heuristic criterion to decide for which $\theta$ a breakpoint exist.
+
+Let's implement a way to do Gibbs sampling in R. First, we write the functions of each of the univariate conditional draws.
+
+```{r}
+draw_alpha <- function(lambda1=0, lambda2=0){
+  gamma_alpha <- 16
+  gamma_lambda <- 10 + lambda1 + lambda2
+  rgamma(n=1, shape = gamma_alpha, scale = 1/gamma_lambda)
+}
+
+draw_lambda1 <- function(x, theta, alpha){
+  gamma_alpha <- (sum(x[1:theta]) + 3)
+  gamma_lambda <- (alpha + theta)
+  rgamma(n = 1, shape = gamma_alpha, scale = 1/gamma_lambda)
+}
+
+draw_lambda2 <- function(x, theta, alpha){
+  gamma_alpha <- sum(x[(theta+1):length(x)]) + 3
+  gamma_lambda <- alpha + (112 - theta)
+  rgamma(n=1, shape = gamma_alpha, scale = 1/gamma_lambda)
+}
+
+draw_alpha()
+```
+
+```{r}
+library(GeDS)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(modeest)
+library(statip)
+coalMine_cases <- GeDS::coalMining
+```
+
+Next we write the function for the Gibbs sampling, given the break point $\theta$.
+
+```{r}
+theta_GibbsSampling <- function(theta_split){
+  alpha_0 = 1
+  x = coalMine_cases$accidents
+  params <- data.frame(lambda1 = c(0), lambda2 = c(0), alpha = c(alpha_0))
+  for(t in 1:1000){
+    lambda1_t <- draw_lambda1(x, theta_split, params$alpha[t])
+    lambda2_t <- draw_lambda2(x, theta_split, params$alpha[t])
+    alpha_t <- draw_alpha(lambda1_t, lambda2_t)
+    params <- params |>
+      add_row(lambda1 = lambda1_t, lambda2 = lambda2_t, alpha = alpha_t)
+  }
+  params
+}
+
+test <- theta_GibbsSampling(0) |>
+  pivot_longer(cols = 1:2,
+               names_to = 'i_number',
+               values_to = "lambda")
+
+glimpse(test)
+
+ggplot(test, aes(x = lambda)) +
+  geom_histogram(aes(color = i_number), binwidth = 0.1)
+```
+
+Next we iterate over all $\theta$ to get the mode estimate of each sample distribution for every $\theta$, and also their variance. The variance is quite important to heuristically determine which is the best estimator
+
+```{r}
+simulation_theta <- theta_GibbsSampling(1)
+lambda1_theta <- mlv(simulation_theta$lambda1, method = 'shorth')
+lambda2_theta <- mlv(simulation_theta$lambda2, method = 'shorth')
+lambda_theta <- data.frame(theta = c(1), lambda1 = c(lambda1_theta), lambda2 = c(lambda2_theta))
+var_lambda1_theta <- var(simulation_theta$lambda1)
+var_lambda2_theta <- var(simulation_theta$lambda2)
+var_lambda_theta <- 
+  data.frame(theta = c(1), var_lambda1 = c(var_lambda1_theta), var_lambda2 = c(var_lambda2_theta))
+
+for(theta in 2:111){
+  print(theta)
+  simulation_theta <- theta_GibbsSampling(theta)
+  lambda1_theta <- mlv(simulation_theta$lambda1, method = 'shorth')
+  lambda2_theta <- mlv(simulation_theta$lambda2, method = 'shorth')
+  lambda_theta <- lambda_theta |>
+    add_row(theta = theta, lambda1 = lambda1_theta, lambda2 = lambda2_theta)
+  var_lambda1_theta <- var(simulation_theta$lambda1)
+  var_lambda2_theta <- var(simulation_theta$lambda2)
+  var_lambda_theta <- var_lambda_theta |>
+    add_row(theta = theta, var_lambda1 = var_lambda1_theta, var_lambda2 = var_lambda2_theta)
+}
+
+lambda_theta
+```
+
+Finally, we plot the variance of $\lambda_1$ and $\lambda_2$ to see how it performs. Arbitrarily, we choose $\theta$ such that both $\lambda_1$ and $\lambda_2$ intersect, while coincidentally they minimizing at the same time.
+
+```{r}
+library(ggforce)
+varmod_lambda_theta <- var_lambda_theta |>
+  pivot_longer(cols = 2:3,
+               names_to = 'i_number',
+               values_to = 'vars')
+
+ggplot(varmod_lambda_theta, aes(x = theta, y = vars))+
+  geom_line(aes(color = i_number)) +
+  facet_zoom(xlim = c(65, 105), ylim = c(0, 0.15))
+```
+
+We predict that $\lambda_1=1.981$ and $\lambda_2 = 0.852$.
+
+```{r}
+real_test <- theta_GibbsSampling(82.5)
+mod_real_test <- real_test |>
+  pivot_longer(cols = 1:2,
+               names_to = 'i_number',
+               values_to = "lambda")
+
+glimpse(test)
+
+ggplot(test, aes(x = lambda)) +
+  geom_histogram(aes(color = i_number), binwidth = 0.1)
+
+lambda1_theta <- mlv(real_test$lambda1, method = 'shorth')
+lambda2_theta <- mlv(real_test$lambda2, method = 'shorth')
+print(lambda1_theta)
+print(lambda2_theta)
+```
