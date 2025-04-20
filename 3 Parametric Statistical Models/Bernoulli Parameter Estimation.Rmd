@@ -4,9 +4,19 @@ output: html_document
 ---
 
 ```{r}
+install.packages("reshape2")
+```
+
+```{r}
 library("plotly")
 library("rgl")
 library("dplyr")
+library(purrr)
+library(ggplot2)
+library(lattice)
+library(akima)
+library(plot3D)
+library(reshape2) 
 ```
 
 Let $Y_i \in \left\{0, 1\right\}$ be independent (and identical) Bernoulli variables, such that $Y = \sum_{i=1}^{n} Y_i\sim B(n,\pi)$. Given the data $y$ we want to estimate $\pi$.
@@ -91,54 +101,49 @@ $$
 \pi_{0}(a,b) = \frac{2a(a+b)-n}{2(a+b)^2 - 2n}
 $$
 
-However, to check whether this is the maximum, since the MSE is a quadratic function, we need to only look at the coefficient of $\pi^2$. The only times where we would declare the highest risk is infinity is when it's positive, which is the condition $a+b>\sqrt n$
+However, to check whether this is the maximum, since the MSE is a quadratic function, we need to only look at the coefficient of $\pi^2$. The only times where we would declare the highest risk is infinity is when it's positive, which is the condition $a+b>\sqrt n$. Since $\pi \in [0,1]$, we would only need to pick the boundaries.
 
-The following code calculates $(a,b,\max \text{MSE} (a,b))$ for almost every $a,b$ that satisfies
-
-$$
-\begin{align*}
-a+b &\leq \sqrt n \\
-b &> 0 \\
-a &> 0
-\end{align*}
-$$
+The following code calculates $(a,b,\max \text{MSE} (a,b))$ for almost every $a,b$.
 
 ```{r}
 n = 100
 
+
 mse_max <- function(a, b, n){
-  pi_0 <- (2*a*(a+b) - n)/(2*(a+b)^2 - 2*n)
-  if_else((pi_0 >= 0) & (pi_0 <= 1),
-          (a^2 + pi_0^2*((a+b)^2 - n) + pi_0*(n - 2*a*(a+b)))/((a+b+n)^2),
-          NA)
+  if(a + b > sqrt(n)){
+    pi_end_0 <- (a^2 + 0^2*((a+b)^2 - n) + 0*(n - 2*a*(a+b)))/((a+b+n)^2)
+    pi_end_1 <- (a^2 + 1^2*((a+b)^2 - n) + 1*(n - 2*a*(a+b)))/((a+b+n)^2)
+    max(c(pi_end_0, pi_end_1))
+  }else{
+    pi_0 <- (2*a*(a+b) - n)/(2*(a+b)^2 - 2*n)
+    if(pi_0 < 0){
+      pi_0 = 0
+    }else if(pi_0>1){
+      pi_0 = 1
+    }
+    (a^2 + pi_0^2*((a+b)^2 - n) + pi_0*(n - 2*a*(a+b)))/((a+b+n)^2)
+  }
+
 }
 
 pi_mse <- function(a, b, n){
   (2*a*(a+b) - n)/(2*(a+b)^2 - 2*n)
 }
 
-a_grid <- seq(from = 0, to = sqrt(n), length.out = 2000)
-b_grid <- seq(from = 0, to = sqrt(n), length.out = 2000)
+a_grid <- seq(from = 0, to = n, length.out = 1000)
+b_grid <- seq(from = 0, to = n, length.out = 1000)
+mse_max_a_b <- expand.grid(a_grid, b_grid) |>
+  mutate(mse_max_val = map2(Var1, Var2, mse_max, n = n))
+z_matrix <- acast(mse_max_a_b, Var1 ~ Var2, value.var = "mse_max_val")
 
-mse_max_a_b <- outer(a_grid, b_grid, FUN = "mse_max", n = n)
-
-for(i in 1:n){
-  for(j in 1:n){
-    if ((a_grid[i] + b_grid[j] > sqrt(n))){
-      mse_max_a_b[i,j] = NA
-    }
-  }
-}
-
-persp3d(mse_max_a_b, col = "skyblue")
+persp3d(x = a_grid, y= b_grid, z = z_matrix, col="skyblue")
 ```
 
 ```{r}
-which_min = which(mse_max_a_b == min(mse_max_a_b, na.rm = TRUE), arr.ind = TRUE) 
-which_mse_min = mse_max_a_b[which_min[1], which_min[2]]
-print(c(a_grid[which_min[1]], b_grid[which_min[2]]))
-mse_max(a_grid[which_min[1]], b_grid[which_min[2]], n) |> sqrt()
-pi_mse(a_grid[which_min[1]], b_grid[which_min[2]], n)
+mse_max_final <- mse_max_a_b[,'mse_max_val'] |> unlist()
+which_min = which(mse_max_final == min(mse_max_final))
+mse_max_a_b[which_min,]
+mse_max_final[which_min]
 ```
 
 The next checks whether our estimation is accurate. It seems that the minimax parameter is quite consistent, but is still close towards our target parameter. After all, it tries to minimize the estimation's maximum risk, not finding the exact estimation that minimizes risk.
@@ -148,14 +153,13 @@ estimator <- function(y,a,b,n){
   (y + a)/(a + b + n)
 }
 
-y = rbinom(1, 10, 0.7)
 
 cum_mean_est <- 0
 lol <- 0
 for(i in 1:10000){
-  y = rbinom(1, 1000, 0.9996747)
-  mean_est <- estimator(y, 10, 3.6618,  1000)
-  real_est <- y/1000
+  y = rbinom(1, 100, 0.6)
+  mean_est <- estimator(y, 5.005005	, 5.005005,  100)
+  real_est <- y/100
   cum_mean_est <- (cum_mean_est*(i-1)+mean_est)/i
   lol <- (lol*(i-1)+real_est)/i
 }
