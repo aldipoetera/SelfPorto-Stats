@@ -1,0 +1,81 @@
+---
+title: "Tests Around ML Estimates"
+output: html_document
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(ggplot2)
+```
+
+We consider an i.i.d. sample $Y_1,\ldots,Y_n$ from an exponential distribution $\text{Exp}(\lambda),\lambda>0$, with density function $f(y\mid\lambda) = \lambda \exp(-\lambda y), y\geq 0$, and want to construct a statistical test for the hypotheses
+
+$$
+H_0 :\lambda = 1 \; \; \text{vs} \; \; H_1 : \lambda \neq 1.
+$$
+
+Construct the Wald, score and likelihood-ratio tests with the appropriate critical values and decision rules, i.e. when one decides for $H_1$
+
+Looking at the hypotheses, this calls for $\lambda_0=1$.
+
+### Wald Test
+
+Let us derive the Fisher information of this distribution. The log-likelihood function is
+
+$$
+l(\lambda;Y) = - \lambda \sum Y_i + n \log \lambda
+$$
+
+thus we have
+
+$$
+\begin{align}
+s(\lambda ; Y) &= -\sum Y_i + \frac{n}{\lambda} \\
+\text{Var}(s(\lambda;Y)) &= \sum \text{Var}(Y_i) \\
+&= \frac{n}{\lambda^2}
+\end{align}
+$$
+
+meaning $I(\lambda) = n/\lambda^2$. For the Wald test, we have the decision rule
+
+$$
+``H_1\!" \iff \left|\hat\lambda-\lambda\right| >c
+$$
+
+and observe its probability under $H_0$:
+
+$$
+\begin{align}
+P\left(``H_1\!" \mid H_0\right) &= P\left(|\hat \lambda - \lambda| >c \mid \lambda=1\right)\\
+&= 1- P\left(-c < \hat \lambda - \lambda <c \mid \lambda=1\right) \\
+&= 1-P\left(-\frac{c}{\sqrt{I^{-1}(\lambda)}} < \frac{\hat \lambda - \lambda}{\sqrt{I^{-1}(\lambda)}} < \frac{c}{\sqrt{I^{-1}(\lambda)}} \mid \lambda=1\right) \\
+&= 1-P\left(-\frac{c}{\lambda/\sqrt n} < \frac{\hat \lambda - \lambda}{\lambda/\sqrt n} < \frac{c}{\lambda/\sqrt n} \mid \lambda=1\right) \\
+\end{align}
+$$
+
+Due to Asymptotic Normality, we have $\hat \lambda \sim N(\lambda, I^{-1}(\lambda))$ thus the center term of the inequality inside the probability above is the distribution $N(0,1)$. Thus with significance $\alpha$,
+
+$$
+\begin{align}
+ 1 -\Phi(c\sqrt n) + \Phi(-c\sqrt n) &= \alpha\\
+\Longrightarrow \Phi(c\sqrt n) - \Phi(-c\sqrt n) &= 1 - \alpha
+\end{align}
+$$
+
+and we choose $c\sqrt n = z_{1-\alpha/2} \iff c = z_{1-\alpha/2}/\sqrt n$ where $z_{1-\alpha/2}$ is the $1-\alpha/2$-th quantile of the pivotal distribution $N(0,1)$. Remember that our decision rule is $\left| \hat \lambda - 1\right|>c$ is our decision rule to rejecting $H_0$.
+
+### Score Test
+
+Now, the score test is quite similar to Wald Test, but we have the decision rule
+
+$$
+``H_1\!" \iff \left|s(\lambda ; Y)\right| = \left|\Sigma Y_i - \frac{n}{\lambda}\right| > c \iff \left| \hat \lambda  - 1\right| > c/n
+$$
+
+where $c = z_{1-\alpha/2}\sqrt{I(1)}=z_{1-\alpha/2}\sqrt n$ such that $z_{1-\alpha/2}$ is the $1-\alpha/2$-th quantile of the pivotal distribution $N(0,1)$. But this means that $\left| \hat \lambda - 1\right| > z_{1-\alpha/2}/\sqrt n$.
+
+Now, our $c$ can be derived from the fact that the mean of $s$ is zero and its variance is $I(\lambda_0)$ (asymptotic normality applies).
+
+### Likelihood-Ratio Test
