@@ -79,3 +79,26 @@ where $c = z_{1-\alpha/2}\sqrt{I(1)}=z_{1-\alpha/2}\sqrt n$ such that $z_{1-\alp
 Now, our $c$ can be derived from the fact that the mean of $s$ is zero and its variance is $I(\lambda_0)$ (asymptotic normality applies).
 
 ### Likelihood-Ratio Test
+
+For Likelihood-Ratio test, we have the decision rule
+
+$$
+``H_1\!" \iff 2\left\{l(\hat \lambda) - l(\lambda_0)\right\} > c
+$$
+
+for some critical value $c$ and in previous chapters we have proven that $2\left\{l(\hat \lambda) - l (\lambda_0)\right\} \sim \mathcal{X}_1^2$, and thus
+
+$$
+\begin{align}
+P\left(``H_1\!" \mid H_0\right) &= P\left(2\left\{l(\hat\lambda) - l(\lambda_0)\right\} > c \mid \lambda = \lambda_0\right) \\
+&= 1 - P\left(2\left\{l(\hat\lambda) - l(\lambda_0)\right\} < c \mid \lambda = \lambda_0\right)
+\end{align}
+$$
+
+and with value being $\leq \alpha$, we have
+
+$$
+P\left(2\left\{l(\hat\lambda) - l(\lambda_0)\right\} < c \mid \lambda = \lambda_0\right) = 1-\alpha
+$$
+
+so we must have $c = \mathcal{X}^2_{1,1-\alpha}$ is our critical value, where it is the $1-\alpha$-th quantile of chi-squared distribution of 1 degree of freedom.
