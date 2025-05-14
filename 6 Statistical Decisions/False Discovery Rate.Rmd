@@ -1,0 +1,133 @@
+---
+title: "False Discovery Rate"
+output: html_document
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(ggplot2)
+```
+
+Simulate $N$ vectors ("the samples") of length $n= 50$ of independent $N(0,1)$ random numbers. Then modify the vectors by adding constants $c_1,\ldots,c_N$ to each of the vectors.
+
+1.  Use appropriate tests ($\alpha = 0.05$) for each of the $N$ test problems
+
+    $$
+    H_{0j}:\mu_j=0 \; \; \text{versus} \; \; H_{1j} : \mu_j = c_j, \;\; j=1,\ldots,N
+    $$
+
+    Simulate the distribution of the $p$-values for the case that $c_j = 0$, $\forall j = 1,\ldots,N$, and the case that some $c_j \neq 0$, $\forall j=1,\ldots,N$, by increasing the number $N$ ($N\to \infty$).
+
+Let's derive the optimal test for these distributions. Adding $c_i$ to each distributions means that its distribution is transformed into $N(c_i,1)$. Letting $Y^{(j)}$ be the $j$-th sample vector of length $n=50$ for $j=1,\ldots,N$, we have
+
+$$
+l(\theta;Y^{(j)}) = - n \log\sqrt{2\pi\sigma^2} - \sum_{i=1}^{n} \frac{(Y^{(j)}_i-c_j)^2}{2\sigma^2}.
+$$
+
+According to Neyman-Pearson Lemma, if we were to test $H_{0j} : \mu_j = 0$ versus $H_{1j}:\mu_j=c_j$, then we have the decision rule
+
+$$
+``H_{1j}\!" \iff l(0) - l(c_j) \leq \gamma_j 
+$$
+
+where $\gamma_j$ is our $j$-th decision rule. Let's further explore the latter inequality term:
+
+$$
+\begin{align}
+l(0) - l(c_j) &= - \sum_{i=1}^{n} \frac{{Y_i^{(j)}}^2 - \left(Y_i^{(j)} - c_j\right)^2}{2\sigma^2} \\
+&= - \sum_{i=1}^{n} \frac{2Y_i^{(j)}c_j - c_j^2}{2\sigma^2} \\
+&= - \frac{c_j}{2\sigma^2}\left(2\Sigma Y_i^{(j)} - nc_j\right) = - \frac{nc_j}{2\sigma^2}\left(2\overline{Y^{(j)}} - c_j\right)
+\end{align}
+$$
+
+Under the decision $H_{1j}$, the last term is less than or equal to $\gamma_j$, so, if given $c_j>0$,
+
+$$
+\begin{align}
+- \frac{nc_j}{2\sigma^2}\left(2\overline{Y^{(j)}} - c_j\right) &\leq \gamma_j \\
+2\overline{Y^{(j)}} - c_j &\geq-\frac{2\gamma_j\sigma^2}{nc_j} \\
+\overline{Y^{(j)}} &\geq \frac{c_j}{2} - \frac{\gamma_j \sigma^2}{n c_j} = \gamma_j^{\ast}
+\end{align}
+$$
+
+and therefore, with respect to the mean value, the test is equivalent to rejecting $H_0$ when $\overline{y^{(j)}}$ is large enough (larger than our new critical value $\gamma_j^{\ast}$). For $c_j<0$, we reject $H_0$ when $\overline{y^{(j)}}$ is small enough (smaller than our new critical value $\gamma_j^{\ast}$). Now our $p$-value became (for $c_j > 0$)
+
+$$
+\begin{align}
+p\text{-value} &= P\left(\overline{Y^{(j)}} \geq \overline {y^{(j)}} \middle| \mu_j = 0\right) \\
+&= P\left(Z^{(j)} \geq z^{(j)} \middle| \mu_j = 0\right)\\
+&= 1 - \Phi\left(z^{(j)}\right)
+\end{align}
+$$
+
+where $Z^{(j)} = \frac{\overline{Y^{(j)}}-\mu_j}{\sigma/\sqrt{n}}$. Accordingly, we have $p\text{-value} = \Phi\!\left(z^{(j)}\right)$ for $c_j<0$. However, using Neyman-Pearson Lemma for $c_j = 0$ is not suitable; the problem needs rewording. Let's say we test $H_{0j} : \mu_j = 0$ against $H_{1j} : \mu_j \neq 0$. Then our decision rule is
+
+$$
+``H_1\!" \iff \left|\overline {Y^{(j)}}\right| > \gamma_j
+$$
+
+or, that our rejection region is in the form of $[-\infty,-\gamma_j]\cup [\gamma_j, \infty]$. Thus our $p\text{-value}$ depends on $\overline{Y^{(j)}}$ being in the interval $\left[-\infty,-\overline{y^{(j)}}\right]\cup \left[\overline{y^{(j)}}, \infty\right]$, i.e. the probability that our data contradicts the hypothesis:
+
+$$
+\begin{align}
+p\text{-value} &= P\left(\overline{Y^{(j)}} \in \left[-\infty, -\overline{y^{(j)}}\right] \cup \left[\overline{y^{(j)}}, \infty\right] \middle| \mu_j = 0\right) \\
+&= P\left(Z^{(j)} \in \left[-\infty, -z^{(j)}\right] \cup \left[z^{(j)}, \infty\right] \middle| \mu_j = 0\right)\\
+&= 2\left\{1 - \Phi\left(z^{(j)}\right)\right\}
+\end{align}
+$$
+
+Now we calculate our random samples.
+
+```{r}
+sample_normal_vector <- function(n_len, c){
+  rnorm(n = n_len, mean = 0, sd = 1) + c
+}
+
+N = 100000
+n = 50
+c_null = rep(0, times = N)
+c_nonzero = rep(1, times = N)
+sample_ndim_vectors <- function(c) sample_normal_vector(n, c)
+vnorm_cnull <- map(c_null, sample_ndim_vectors)
+vnorm_cnonzero <- map(c_nonzero, sample_ndim_vectors)
+```
+
+After that, we calculate the corresponding z-score.
+
+```{r}
+twotailed_pvalue <- function(ybar, n_len){
+  zscore <- (ybar*sqrt(n_len)) |> abs()
+  1 - 2*pnorm(-zscore)
+}
+onesided_pvalue <- function(c, ybar, n_len){
+  zscore <- (ybar*sqrt(n_len))
+  if(c > 0) {
+    1 - pnorm(zscore)
+  }else if(c < 0){
+    pnorm(zscore)
+  }else{
+    twotailed_pvalue(ybar, nlen)
+  }
+}
+
+sample_to_mean_cnull <- map_dbl(vnorm_cnull, sum)/n
+sample_to_mean_cnonzero <- map_dbl(vnorm_cnonzero, sum)/n
+
+pvalue_cnull <- modify(sample_to_mean_cnull, twotailed_pvalue, n_len = n)
+pvalue_cnonzero <- map2_dbl(c_nonzero, sample_to_mean_cnonzero, onesided_pvalue, 
+                          n_len = n)
+
+data_pvalue <- data.frame(cnull = pvalue_cnull, cnonzero = pvalue_cnonzero)
+```
+
+```{r}
+ggplot(data = data_pvalue, aes(x = cnull)) +
+  geom_density(aes(y = after_stat(scaled))) + 
+  coord_cartesian(xlim = c(0,1), ylim = c(0,1))
+
+ggplot(data = data_pvalue, aes(x = cnonzero)) +
+  geom_density(aes(y = after_stat(scaled))) +
+  coord_cartesian(xlim = c(0,1), ylim = c(0,1))
+```
