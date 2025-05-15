@@ -88,7 +88,7 @@ sample_normal_vector <- function(n_len, c){
 N = 100000
 n = 50
 c_null = rep(0, times = N)
-c_nonzero = rep(1, times = N)
+c_nonzero = rep(0.5, times = N)
 sample_ndim_vectors <- function(c) sample_normal_vector(n, c)
 vnorm_cnull <- map(c_null, sample_ndim_vectors)
 vnorm_cnonzero <- map(c_nonzero, sample_ndim_vectors)
@@ -131,3 +131,60 @@ ggplot(data = data_pvalue, aes(x = cnonzero)) +
   geom_density(aes(y = after_stat(scaled))) +
   coord_cartesian(xlim = c(0,1), ylim = c(0,1))
 ```
+
+2.  Now set $N=10$ and $\alpha = 0.05$. Repeat the generation of samples 100 times, i.e. 1000 vectors of length 50 are generated. Estimate the false discovery rate (FDR). What is the FDR after correcting the $p$-values with the Bonferroni procedure? Repeat this procedure for different values of the constants $c_j$.
+
+This exercise is kind of ill-defined. I think it asks for several constants to be non-zero. Otherwise, our FDR would just be 1 since the true negatives are zero so $R=V$. I set up so that 50% of the experiments are of $\mu_j =c_j = 0.5$, other than that $\mu_j =0$.
+
+```{r}
+decision_function <- function(c, pvalue, alpha){
+  if(c != 0){ # H1 is true
+    if_else(pvalue < alpha, 'TN', 'FP')
+  }else{ # H0 is true
+    if_else(pvalue < alpha, 'FN', 'TP')
+  }
+}
+
+proper_test <- function(c, ybar, n_len){
+  if(c != 0){
+    onesided_pvalue(c, ybar, n_len)
+  }else{
+    twotailed_pvalue(ybar, n_len)
+  }
+}
+
+sample_fdr_cnull <- function(N, n, alpha){
+  c_decision <- runif(N)
+  c_null = if_else(c_decision < 0.5, 0, 0.5)
+  
+  sample_ndim_vectors <- function(c) sample_normal_vector(n, c)
+  vnorm_cnull <- map(c_null, sample_ndim_vectors)
+  
+  sample_to_mean_cnull <- map_dbl(vnorm_cnull, sum)/n
+  
+
+  
+  pvalue_cnull <- map_vec(sample_to_mean_cnull, 
+                           twotailed_pvalue, n_len = n)
+  decision <- map2_vec(c_null, pvalue_cnull, decision_function,
+                      alpha = alpha)
+  
+  V = sum(decision == 'FN')
+  R = sum(decision == 'FN') + sum(decision == 'TN')
+  V/max(R,1)
+}
+
+estimate_fdr_cnull <- function(iter, N, n, alpha, bonferroni = FALSE){
+  if(bonferroni == TRUE){
+    alpha <- alpha / N
+  }
+  fdr <- map_vec(rep(N, times = iter), sample_fdr_cnull,
+                n = n, alpha = alpha)
+  mean(fdr)
+}
+
+estimate_fdr_cnull(1000, 10, 50, 0.05, bonferroni = FALSE)
+estimate_fdr_cnull(1000, 10, 50, 0.05, bonferroni = TRUE)
+```
+
+Since $\alpha = 0.05$, it is expected that the Bonferroni procedure will control the FWER, which in turn control the FDR to the value $\alpha$.
