@@ -1,0 +1,189 @@
+---
+title: "Teen Gambling Analysis"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+The dataset `teengamb` in the R package `faraway` contains information on the gambling behaviour of teenagers in Great Britain:
+
+| Variable | Description                                              |
+|----------|----------------------------------------------------------|
+| `gamble` | Money spent on gambling in pounds per year (response)    |
+| `status` | Socioeconomic status (based on parents' occupation)      |
+| `income` | Income (in pounds per week)                              |
+| `verbal` | Test score based on the number of properly defined words |
+| `sex`    | Gender (0 = male and 1 = female)                         |
+
+1.  Define and fit an ordinary linear regression model (including an intercept $\beta_0$) to explore the relationship between gambling and socioeconomic status and the income and verbal test score (`verbal`). Use `lm` function in R.
+
+```{r message=FALSE, warning=FALSE}
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(ggplot2)
+library(faraway)
+library(ggcorrplot)
+library(ggpubr)
+library(matlib)
+library(scatterplot3d)
+```
+
+```{r}
+dataset_teengamb <- teengamb
+dataset_teengamb |> glimpse()
+```
+
+```{r}
+corr <- cor(dataset_teengamb)
+ggcorrplot(corr, lab = TRUE, type = "lower")
+```
+
+```{r}
+ggplot(data = dataset_teengamb, aes(x = income, y = gamble)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y~x) + 
+  stat_regline_equation(
+    aes(label = after_stat(eq.label))
+  )
+
+ggplot(data = dataset_teengamb, aes(x = status, y = verbal)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y~x) + 
+  stat_regline_equation(
+    aes(label = after_stat(eq.label))
+  )
+```
+
+2.  Give the distribution of the estimated coefﬁcient vector and compute the parameters if possible.
+
+```{r}
+model_1 <- lm(gamble ~ income, data = dataset_teengamb)
+model_2 <- lm(verbal ~ status, data = dataset_teengamb)
+model_1
+model_2
+
+vec_income <- dataset_teengamb[['income']]
+vec_status <- dataset_teengamb[['status']]
+n = length(vec_income)
+
+model1_s2 <- model_1[['residuals']] |> map_vec(function(x) x^2) |> sum()
+model1_s2 <- model1_s2/(n-2)
+
+model2_s2 <- model_2[['residuals']] |> map_vec(function(x) x^2) |> sum()
+model2_s2 <- model2_s2/(n-2)
+
+X_income <- matrix(data = c(rep(1, times = n), vec_income), 
+                   ncol = 2, byrow = FALSE)
+X_status <- matrix(data = c(rep(1, times = n), vec_status), 
+                   ncol = 2, byrow = FALSE)
+
+cov_matrix_income <- ((t(X_income)%*%X_income) |> inv())*model1_s2
+cov_matrix_status <- ((t(X_status)%*%X_status) |> inv())*model2_s2
+
+# Covariance Matrices
+cov_matrix_income
+cov_matrix_status
+
+# Standard Error Residuals
+model1_s2 |> sqrt()
+model2_s2 |> sqrt()
+```
+
+With unbiased estimation of the coefficient, we have that
+
+$$
+{\beta_{\text{income}} \mid y} \sim t_{45}\!
+\left(\begin{pmatrix} -6.325\\ 5.520\end{pmatrix}, 
+\begin{pmatrix} 36.359 & -4.979 \\ -4.979 & 1.072 \end{pmatrix}\right)
+$$
+
+and
+
+$$
+{\beta_{\text{status}}\mid y} \sim t_{45}\!
+\left(\begin{pmatrix} 4.07343\\ 0.05717\end{pmatrix}, 
+\begin{pmatrix} 0.431 & -0.0083 \\ -0.0083 & 0.000184 \end{pmatrix}\right)
+$$
+
+3.  Perform an in-depth interpretation of the estimates of your coefﬁcients.
+
+For our income, there is a standard error of $s \approx 6$ values for the intercept. Compared to the intercept ($\approx -6$), this signifies that there is a rather higher chance that teens who gambles is in debt (although that is up to interpretation) but a small chance that they're still hanging by a thread; this is not meaningful. The slope is positive, an increase in the level of income signifies an expected increase of $5.52$. The standard error is $\approx 1$, which is not really meaningful but this means teens will eventually increase the amount of money they'll gamble given the income of their parents.
+
+Lastly, for our status, our intercept value of $4.07343$ might have a slight meaning; any teen with low socioeconomic status should be expected to know several verbal questions. Lastly; our slope has a low increase of $0.05717$. Although socioeconomic status does affect how one conducts verbally, it is just an indication that one could increase, at maximal, in average of $(75-15)\times0.05717 \approx 3.4302$ scores in verbal tests through socioeconomic status.
+
+4.  Test if the whole model is useful, i.e. for the hypothesis $\beta_1 = \ldots = \beta_p = 0$. Interpret the result.
+
+Since $p=1$, we will be only calculating the $p$-values for $\beta_1=0$. That is, $P(\left|\beta_1\right| > \hat \beta_1 \mid \overline \beta_1 = 0)$.
+
+```{r}
+df = n - 2
+
+beta1_income <- model_1[['coefficients']][2]
+model1_s <- cov_matrix_income[2,2] |> sqrt()
+T_val1 <- beta1_income/(model1_s)
+2*pt(T_val1, df, lower.tail = FALSE)
+
+beta1_status <- model_2[['coefficients']][2]
+model2_s <- cov_matrix_status[2,2] |> sqrt()
+T_val2 <- beta1_status/(model2_s)
+2*pt(T_val2, df, lower.tail = FALSE)
+```
+
+For both our models, we found that the hypotheses are rejectable, so this means they are likely different from zero. Both models shown genuine increase in between the covariate and its response.
+
+5.  Make a linear model with all four covariates and also include the interactions between all variables and gender. Appropriately visualise the estimates of each effect. Finally, test whether we can reduce the set of covariates to `income` and `sex`.
+
+First, we will put all covariates `sex`, `status`, `income` and `verbal` into one model and then calculate our covariance matrix for our distribution of the coefficient.
+
+```{r}
+model_full <- lm(gamble ~ sex + status + income + verbal, data = dataset_teengamb)
+model_full[['coefficients']]
+model_s2 <- model_full[['residuals']] |> map_vec(function(x) x^2) |> sum()
+model_s2 <- model_s2/(n-5)
+
+X <- matrix(data = c(rep(1, times = n),
+                    sex, status, income, verbal),
+           ncol = 5, byrow = FALSE) |> 
+  with(data = dataset_teengamb)
+
+covar_matrix <- ((t(X)%*%X) |> inv())*model_s2
+covar_matrix
+
+```
+
+Then we can calculate p-values like the following (given $H_0:\beta_i = 0$)
+
+```{r}
+T_val <- function(n) { model_full[['coefficients']][n+1] / (sqrt(covar_matrix[n+1,n+1]))}
+T_val_sex <- T_val(1) |> abs()
+T_val_status <- T_val(2) |> abs()
+T_val_income <- T_val(3) |> abs()
+T_val_verbal <- T_val(4) |> abs()
+
+p_val_sex <- 2*pt(T_val_sex, df, lower.tail = FALSE)
+p_val_status <- 2*pt(T_val_status, df, lower.tail = FALSE)
+p_val_income <- 2*pt(T_val_income, df, lower.tail = FALSE)
+p_val_verbal <- 2*pt(T_val_verbal, df, lower.tail = FALSE)
+p_vals <- c(p_val_sex, p_val_status, p_val_income, p_val_verbal)
+
+options(digits = 9, scipen = 100)
+print(p_vals)
+```
+
+As we can see, $p$-values for `sex` and `income` are $<0.05$. We can't reject the others especially status. This means we can discard them and reduce our model to `gamble ~ sex + income`.
+
+```{r}
+model_reduced <- lm(gamble ~ sex + income, data = dataset_teengamb)
+model_reduced
+
+ggplot(data = dataset_teengamb, aes(x = income, y = gamble)) +
+  geom_point(aes(color = factor(sex), shape = factor(sex)), 
+             alpha = 0.6, size = 2) +
+  geom_smooth(method = 'lm', formula = y~x, color = 'black', se = FALSE) +
+  geom_smooth(aes(group = factor(sex), color = factor(sex)), 
+              method = 'lm', formula = y~x) +
+  stat_regline_equation(
+    aes(label = after_stat(eq.label), color = factor(sex))
+  )
+```
