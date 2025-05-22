@@ -39,6 +39,8 @@ inverse_logit <- function(x) {
 lm_model <- lm(y ~ duration + amount + moral + intuse + acc2,
                      data = credit)
 lm_model
+
+lm(y ~ duration + amount + moral + intuse + acc2 + acc1, data = credit)
 ```
 
 1.  Using the ﬁtted model, the probability of a failure of a credit can be estimated by
@@ -82,3 +84,7 @@ credit_scoring <- credit |>
 
 head(credit_scoring)
 ```
+
+3.  Explain why logistic regression can be seen as a tool for binary classiﬁcation based on information in the variables $x$.
+
+Since $G:\mathcal{I}\to \left[0, 1\right]$ and our model approximates $y$, a binary response variable, where $\mathcal{I}$ is our input space, our predicted value could be useful to know how far the predicted value is to creditworthiness.
