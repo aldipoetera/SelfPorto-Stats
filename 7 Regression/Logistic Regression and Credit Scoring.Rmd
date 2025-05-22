@@ -1,0 +1,84 @@
+---
+title: "Logistic Regression and Credit Scoring"
+output: html_document
+---
+
+In credit scoring, banks want to check whether a client will pay back a credit in the specified time frame. We consider a binary outcome variable $Y_i \in \{0,1\}$, which indicates whether a client $i$ pays back the credit ($Y_i = 0$) or not ($Y_i = 1$). In our example, further variables about the credit and the client are available: $x_1$ = duration of the credit, $x_2$ = amount of the credit, $x_3$ = previous payment behaviour (1 = good and 0 = bad), $x_4$ = intended use (1 = private and 0 = business) and $x_5$ = running account (0 = good running account and 1 = no or bad account running).
+
+1.  Fit a logistic scoring model $\text{logit} \,P(Y_i = 1\mid x) = \beta_0 + \sum_{i=1}^5 \beta_i x_i$ resulting in estimations $\hat\beta_0, \ldots, \hat\beta_5$.
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(ggplot2)
+library(ggcorrplot)
+library(ggpubr)
+library(matlib)
+library(haven)
+```
+
+```{r}
+credit <- read_dta("credit.dta")
+glimpse(credit)
+summary(credit)
+
+ggplot(data = credit, aes(x = y)) +
+  geom_bar()
+```
+
+```{r}
+logit <- function(x) {
+  log(x/(1 - x))
+}
+
+inverse_logit <- function(x) {
+  1/(1 + exp(-x))
+}
+
+lm_model <- lm(y ~ duration + amount + moral + intuse + acc2,
+                     data = credit)
+lm_model
+```
+
+1.  Using the ﬁtted model, the probability of a failure of a credit can be estimated by
+
+    $$
+    P(Y_1 = 1\mid x) = G(\hat\beta_0 + \hat \beta_1 x_1 + \ldots + \hat \beta_5 x_5)
+    $$
+
+    with $G(t) = \text{logit}^{-1}(t) = (1 + \exp(-t))^{-1}$. Use results from 1 and give probabilities for different values of $x$: $x_1 = (12,24,36)$, $x_2 = (4, 6, 8)$, $x_3 = (0, 1)$, $x_4 = (0, 1)$, and $x_5 = (0, 1)$. The calculation can be used to decide whether the bank offers the credit or not by using a threshold for the failure probability.
+
+```{r}
+coeff <- lm_model[['coefficients']]
+
+logistic_model_pred <- function(duration_x, amount_x, moral_x, intuse_x, acc2_x){
+  vect <- c(1, duration_x, amount_x, moral_x, intuse_x, acc2_x)
+  (t(vect) %*% coeff) |> inverse_logit()
+}
+
+new_credits <- expand_grid(
+  duration = c(12, 24, 36),
+  amount = c(4, 6, 8),
+  moral = c(0, 1),
+  intuse = c(0, 1),
+  acc2 = c(0, 1)
+)
+
+new_credits |> head()
+```
+
+```{r}
+new_credits_scoring <- new_credits |>
+  mutate(scoring = pmap_dbl(new_credits, 
+                            logistic_model_pred))
+
+head(new_credits_scoring)
+
+credit_scoring <- credit |>
+  mutate(scoring = pmap_dbl(
+    credit[c('duration','amount', 'moral','intuse', 'acc2')], 
+    logistic_model_pred))
+
+head(credit_scoring)
+```
