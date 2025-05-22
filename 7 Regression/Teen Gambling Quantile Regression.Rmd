@@ -1,0 +1,48 @@
+---
+title: "Teen Gambling Quantile Regression"
+output: html_document
+---
+
+We revisit the dataset of the previous exercise. Instead of modelling the mean, we will now apply median regression.
+
+1.  Use the `quantreg` package in R to perform a quantile regression for the median, i.e. $\tau = 0.5$, to explore the relationship between gambling and socioeconomic status and the income and verbal test score. Try to interpret the results and compare them to the regression for the mean performed in Exercise 7.1 point 1.
+
+```{r}
+install.packages("ggpmisc")
+```
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(ggplot2)
+library(faraway)
+library(ggcorrplot)
+library(ggpubr)
+library(matlib)
+library(quantreg)
+library(ggpmisc)
+```
+
+```{r warning=FALSE}
+rq(gamble ~ income, data = teengamb, tau = c(0.5, 0.05, 0.95))
+
+ggplot(data = teengamb, aes(x = income, y = gamble)) +
+  geom_point(aes(shape = factor(sex, labels = c("male", "female")))) +
+  stat_quant_line(aes(color = after_stat(quantile.f),
+                      linetype = factor(sex, labels = c("male", "female"))),
+                  quantiles = c(0.1, 0.5, 0.9), width = 4, alpha = 0.5) +
+  stat_quant_eq(aes(label = paste(after_stat(eq.label), "*\" with \"*", 
+                                  after_stat(qtl.label), sep=""),
+                    color = after_stat(quantile.f)),
+                quantiles = c(0.1, 0.5, 0.9)) +
+  geom_smooth(aes(linetype = factor(sex, labels = c("male", "female"))), method = lm, color = 'yellow') +
+  facet_grid(~ factor(sex, labels = c("male", "female"))) +
+  labs(linetype = "sex", shape = "sex", color = "quantile")
+```
+
+We can see that both the regression of the means and the medians are the same (for both sexes). The data is quite normally distributed (not skewed) per value of the covariate.
+
+2.  What are possible advantages of quantile regression in comparison to ordinary linear regression?
+
+However, since we can customize what values of the quantile to investigate, we can further identify those in the outliers. We can also focus on median rather than mean to compensate from skewed regression.
