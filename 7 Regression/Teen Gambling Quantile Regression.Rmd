@@ -36,7 +36,8 @@ ggplot(data = teengamb, aes(x = income, y = gamble)) +
                                   after_stat(qtl.label), sep=""),
                     color = after_stat(quantile.f)),
                 quantiles = c(0.1, 0.5, 0.9)) +
-  geom_smooth(aes(linetype = factor(sex, labels = c("male", "female"))), method = lm, color = 'yellow') +
+  geom_smooth(aes(linetype = factor(sex, labels = c("male", "female"))), 
+              method = lm, color = 'yellow') +
   facet_grid(~ factor(sex, labels = c("male", "female"))) +
   labs(linetype = "sex", shape = "sex", color = "quantile")
 ```
